@@ -2,7 +2,7 @@ import { runHttpQuery, GraphQLOptions }                  from 'apollo-server-cor
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { IncomingMessage, OutgoingMessage, Server }      from 'http';
 
-function GraphQLPlugin(fastify: FastifyInstance<Server, IncomingMessage, OutgoingMessage>, pluginOptions: { prefix: string, graphql: Function | GraphQLOptions }, next: (err?: Error) => void) {
+function GraphQLPlugin(fastify: FastifyInstance<Server, IncomingMessage, OutgoingMessage>, pluginOptions: { prefix: string, graphql: GraphQLOptions }, next: (err?: Error) => void) {
   if (!pluginOptions) throw new Error('Fastify GraphQL requires options!');
   else if (!pluginOptions.prefix) throw new Error('Fastify GraphQL requires `prefix` to be part of passed options!');
   else if (!pluginOptions.graphql) throw new Error('Fastify GraphQL requires `graphql` to be part of passed options!');
@@ -10,6 +10,13 @@ function GraphQLPlugin(fastify: FastifyInstance<Server, IncomingMessage, Outgoin
   const handler = async (request: FastifyRequest<IncomingMessage>, reply: FastifyReply<OutgoingMessage>) => {
     try {
       let method = request.req.method;
+      let context = pluginOptions.graphql.context;
+      if (context) {
+        context = Object.assign({}, context, { request })
+      } else {
+        context = { request }
+      }
+      pluginOptions.graphql.context = context
       const gqlResponse = await runHttpQuery([request, reply], {
         method : method,
         options: pluginOptions.graphql,
